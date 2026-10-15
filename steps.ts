@@ -1,20 +1,4 @@
-import type { PcbPostRoutingHook, PcbPostRoutingHookContext } from "@tscircuit/props"
-
-// A small connector-to-IC breakout: J1 (VCC, GND, SDA, SCL) wired to U1.
-export const Breakout = ({ hook, pour }: { hook?: PcbPostRoutingHook; pour?: boolean }) => (
-  <board width="26mm" height="18mm" pcbPostRoutingHook={hook}>
-    <pinheader name="J1" pinCount={4} pitch="2.54mm" pcbX={-11.2} pcbY={0} pcbOrientation="vertical"
-      pinLabels={["VCC", "GND", "SDA", "SCL"]} />
-    <chip name="U1" footprint="soic8" pcbX={5} pcbY={0}
-      pinLabels={{ pin1: "SDA", pin2: "SCL", pin4: "GND", pin8: "VCC" }} />
-    <trace from=".J1 > .pin1" to=".U1 > .pin8" />
-    <trace from=".J1 > .pin2" to=".U1 > .pin4" />
-    <trace from=".J1 > .pin3" to=".U1 > .pin1" />
-    <trace from=".J1 > .pin4" to=".U1 > .pin2" />
-    <trace from=".J1 > .pin2" to="net.GND" />
-    {pour && <copperpour connectsTo="net.GND" layer="top" />}
-  </board>
-)
+import type { PcbPostRoutingContext } from "@tscircuit/props"
 
 // ---- geometry for the test-point example ----
 type P = { x: number; y: number }
@@ -30,7 +14,7 @@ const segSegDist = (a: P, b: P, c: P, d: P) =>
  * Example 1: a test point on each connector pin. For every pin, try directions around it and take the
  * first one where a short stub plus a round pad keep clear of all other copper and of the board edge.
  */
-export const addTestPoints = (ctx: PcbPostRoutingHookContext) => {
+export const addTestPoints = (ctx: PcbPostRoutingContext) => {
   const cj = ctx.getCircuitJson()
   const board = cj.find((e) => e.type === "pcb_board")!
   const STUB = 2.0, PAD_R = 0.6, TRACE_W = 0.25, CLEAR = 0.25, EDGE = 0.5
@@ -93,7 +77,7 @@ export const addTestPoints = (ctx: PcbPostRoutingHookContext) => {
 }
 
 /** Example 2: widen every trace segment on the power nets after routing. */
-export const widenPowerTraces = (width: number) => (ctx: PcbPostRoutingHookContext) => {
+export const widenPowerTraces = (width: number) => (ctx: PcbPostRoutingContext) => {
   const cj = ctx.getCircuitJson()
   const powerPorts = new Set(
     [".J1 > .pin1", ".J1 > .pin2", ".U1 > .pin8", ".U1 > .pin4"].map(
@@ -112,8 +96,8 @@ export const widenPowerTraces = (width: number) => (ctx: PcbPostRoutingHookConte
   }
 }
 
-/** Example 4: a naive hook that always puts the test point 2.5 mm to the right, across the routed traces. */
-export const addTestPointsNaively = (ctx: PcbPostRoutingHookContext) => {
+/** Example 4: a naive step that always puts the test point 2.5 mm to the right, across the routed traces. */
+export const addTestPointsNaively = (ctx: PcbPostRoutingContext) => {
   const cj = ctx.getCircuitJson()
   for (const pin of [1, 2, 3, 4]) {
     const port = ctx.getPcbPort(`.J1 > .pin${pin}`)!
